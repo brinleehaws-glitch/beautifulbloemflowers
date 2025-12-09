@@ -1,0 +1,23 @@
+body{
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    background-color: antiquewhite;
+}
+
+h1{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+}
+
+.customFont{
+    font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif !important;
+}
+
+h2{
+    color: rgb(233, 144, 191);
+    background-color: antiquewhite;
+}
+
+.imgCustom{
+    width: 40%;
+    left: 0;
+    right: 0;
+}
