@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color by Number Flower</title>
+    <style>
+        /*
+        * --- STYLES ---
+        * All styles are kept here in the <style> block
+        */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        #game-container {
+            display: flex;
+            gap: 40px;
+            max-width: 900px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        #color-palette {
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .color-item:hover {
+            background-color: #eee;
+        }
+
+        .color-swatch {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #555;
+            margin-right: 10px;
+            border-radius: 4px;
+        }
+
+        .color-number {
+            font-weight: bold;
+            font-size: 18px;
+            width: 30px;
+            text-align: center;
+        }
+
+        .color-item.selected {
+            border: 2px solid #007bff;
+            background-color: #e6f0ff;
+        }
+
+        /* --- Flower Grid Styling --- */
+        #flower-grid {
+            display: grid;
+            /* Creates a 10x10 grid for the flower */
+            grid-template-columns: repeat(10, 40px);
+            grid-template-rows: repeat(10, 40px);
+            border: 1px solid #ccc;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .grid-cell {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.1s;
+        }
+
+        .grid-cell.colored {
+            border: 1px solid transparent; /* Hide borders when colored */
+            color: transparent; /* Hide number when colored */
+        }
+        
+        .grid-cell:not([data-color="0"]):hover {
+            opacity: 0.8;
+        }
+
+        .grid-cell[data-color="0"] {
+             /* Background cells that are not part of the image */
+             background-color: #f8f8f8; 
+             border: 1px solid #eee;
+             cursor: default;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #28a745;
+            min-height: 24px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Color by Number: The Simple Flower</h1>
+
+    <div id="game-container">
+        <div id="color-palette">
+            <h2>Color Key</h2>
+            </div>
+
+        <div id="flower-grid">
+            </div>
+    </div>
+
+    <div id="message"></div>
+
+    <script>
+        /*
+        * --- JAVASCRIPT GAME LOGIC ---
+        * All game code is kept here in the <script> block
+        */
+
+        // --- Configuration: The Color Map ---
+        const COLOR_MAP = {
+            1: { color: '#FF7F00', name: 'Orange' },
+            2: { color: '#FFD700', name: 'Yellow' },
+            3: { color: '#32CD32', name: 'Green' },
+            4: { color: '#800080', name: 'Purple' },
+            // Color 0 is reserved for background/empty cells
+        };
+
+        // --- Configuration: The Flower Image Grid (10x10) ---
+        // Each number corresponds to a key in the COLOR_MAP
+        // 0 represents an empty/background cell
+        const FLOWER_GRID_DATA = [
+            [0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 1, 2, 2, 2, 1, 0, 0, 0],
+            [0, 1, 2, 4, 4, 4, 2, 1, 0, 0],
+            [1, 2, 4, 2, 3, 4, 2, 4, 1, 0],
+            [1, 2, 4, 3, 3, 3, 4, 2, 1, 0],
+            [1, 2, 4, 3, 3, 3, 4, 2, 1, 0],
+            [0, 1, 2, 4, 3, 4, 2, 1, 0, 0],
+            [0, 0, 1, 2, 3, 2, 1, 0, 0, 0],
+            [0, 0, 0, 0, 3, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 3, 0, 0, 0, 0, 0],
+        ];
+
+        // --- State Variables ---
+        let selectedColorNumber = null;
+        let cellsToColorCount = 0;
+        let coloredCellsCount = 0;
+
+        // --- DOM Elements ---
+        const colorPalette = document.getElementById('color-palette');
+        const flowerGrid = document.getElementById('flower-grid');
+        const messageDisplay = document.getElementById('message');
+
+
+        // --- Initialization Functions ---
+
+        function setupGame() {
+            createColorPalette();
+            createFlowerGrid();
+            
+            // Calculate total cells that need coloring (not 0)
+            cellsToColorCount = FLOWER_GRID_DATA.flat().filter(num => num !== 0).length;
+
+            // Automatically select the first color to start
+            selectColor(1);
+        }
+
+        function createColorPalette() {
+            // Iterate over the COLOR_MAP to build the palette HTML
+            for (const number in COLOR_MAP) {
+                if (number === '0') continue; // Skip the background color map entry
+
+                const { color, name } = COLOR_MAP[number];
+
+                const item = document.createElement('div');
+                item.classList.add('color-item');
+                item.dataset.number = number;
+                item.addEventListener('click', () => selectColor(parseInt(number)));
+
+                item.innerHTML = `
+                    <div class="color-number">${number}</div>
+                    <div class="color-swatch" style="background-color: ${color};"></div>
+                    <span>${name}</span>
+                `;
+                colorPalette.appendChild(item);
+            }
+        }
+
+        function createFlowerGrid() {
+            FLOWER_GRID_DATA.forEach((row, rowIndex) => {
+                row.forEach((colorNumber, colIndex) => {
+                    const cell = document.createElement('div');
+                    cell.classList.add('grid-cell');
+                    cell.dataset.row = rowIndex;
+                    cell.dataset.col = colIndex;
+                    cell.dataset.color = colorNumber; // The required color for this cell
+
+                    if (colorNumber !== 0) {
+                        cell.textContent = colorNumber; // Display the number to be colored
+                        cell.addEventListener('click', () => handleCellClick(cell, colorNumber));
+                    } else {
+                        // Cells with color 0 are background and don't need interaction
+                        cell.classList.add('colored');
+                        cell.style.backgroundColor = COLOR_MAP[0] ? COLOR_MAP[0].color : '#f8f8f8';
+                    }
+                    flowerGrid.appendChild(cell);
+                });
+            });
+        }
+
+
+        // --- Game Logic Functions ---
+
+        function selectColor(number) {
+            selectedColorNumber = number;
+
+            // Update the visual selection in the palette
+            document.querySelectorAll('.color-item').forEach(item => {
+                item.classList.remove('selected');
+                if (parseInt(item.dataset.number) === number) {
+                    item.classList.add('selected');
+                }
+            });
+
+            messageDisplay.textContent = `Selected Color: ${number} (${COLOR_MAP[number].name})`;
+        }
+
+        function handleCellClick(cell, requiredColorNumber) {
+            // Check if the cell is already colored
+            if (cell.classList.contains('colored')) {
+                messageDisplay.textContent = "That cell is already colored!";
+                return;
+            }
+
+            // Check if a color is selected
+            if (selectedColorNumber === null) {
+                messageDisplay.textContent = "Please select a color from the key first!";
+                return;
+            }
+
+            // Check if the selected color matches the required number
+            if (selectedColorNumber === requiredColorNumber) {
+                // Correct color applied!
+                const colorHex = COLOR_MAP[requiredColorNumber].color;
+                
+                cell.style.backgroundColor = colorHex;
+                cell.classList.add('colored');
+                cell.removeEventListener('click', handleCellClick); // Prevent re-coloring
+                
+                coloredCellsCount++;
+                messageDisplay.textContent = `Nice! You colored cell ${requiredColorNumber} (${COLOR_MAP[requiredColorNumber].name}).`;
+
+                checkCompletion();
+
+            } else {
+                // Incorrect color
+                messageDisplay.textContent = `Oops! Cell ${requiredColorNumber} needs color ${requiredColorNumber}. Try again!`;
+            }
+        }
+
+        function checkCompletion() {
+            if (coloredCellsCount >= cellsToColorCount) {
+                messageDisplay.style.color = '#ff4500'; /* Change color for final message */
+                messageDisplay.innerHTML = "🎉 **CONGRATULATIONS!** You completed the flower! 🌸";
+            }
+        }
+
+        // --- Start the game ---
+        setupGame();
+
+    </script>
+
+</body>
+</html>

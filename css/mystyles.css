@@ -15,9 +15,17 @@ h2{
     color: rgb(233, 144, 191);
     background-color: antiquewhite;
 }
+h4 {
+  font-weight: normal;
+}
+
 
 .imgCustom{
     width: 40%;
     left: 0;
     right: 0;
+}
+
+.tableauPlaceholder{
+    width: 20%;
 }
